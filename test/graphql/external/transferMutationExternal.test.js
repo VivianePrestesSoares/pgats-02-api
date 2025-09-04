@@ -63,7 +63,7 @@ describe('Transfer Mutation - GraphQL', () => {
         expect(resposta.body.data.createTransfer).to.have.property('value', 10)
     })
 
-    it('Quando informo saldo indisponivel para transferencia', async () => {
+    it('Quando informo saldo indisponivel para transferencia, recebo erro saldo insuficiente', async () => {
         const resposta = await request('http://localhost:4000')
             .post('/graphql')
             .set('Authorization', 'Bearer ' + token)
