@@ -1,66 +1,55 @@
 // Bibliotecas
 const request = require('supertest');
-const { expect } = require('chai');
+const { expect, use } = require('chai');
+
+const chaiExclude = require('chai-exclude');
+use(chaiExclude)
+
+require('dotenv').config();
 
 // Testes
 describe('Transfer', () => {
     describe('POST /transfers', () => {
-        beforeEach(async () => {
-            const respostaLogin = await request('http://localhost:3000')
+        before(async () => {
+            const postLogin = require('../fixture/requisicoes/login/postLogin.json');
+
+            const respostaLogin = await request(process.env.BASE_URL_REST)
                 .post('/users/login')
-                .send({
-                    username: 'julio',
-                    password: '123456'
-                });
+                .send(postLogin);
 
             token = respostaLogin.body.token;
         });
 
-        it('Quando informo remetente e destinatario inexistentes recebo 400', async () => {
-            const resposta = await request('http://localhost:3000')
-                .post('/transfers')
-                .set('Authorization', `Bearer ${token}`)
-                .send({
-                    from: "julio",
-                    to: "isabelle",
-                    value: 100
-                });
+        it('Quando informo valores válidos eu tenho sucesso com 201 CREATED', async () => {
+            const postTransfer = require('../fixture/requisicoes/transferencias/postTransfer.json');
             
-            expect(resposta.status).to.equal(400);
-            expect(resposta.body).to.have.property('error', 'Usuário remetente ou destinatário não encontrado')
-        });
-
-        it('Usando Mocks: Quando informo remetente e destinatario inexistentes recebo 400', async () => {
-            const resposta = await request("http://localhost:3000")
+            const resposta = await request(process.env.BASE_URL_REST)
                 .post('/transfers')
                 .set('Authorization', `Bearer ${token}`)
-                .send({
-                    from: "jose",
-                    to: "isabelle",
-                    value: 100
-                });
-            
-            expect(resposta.status).to.equal(400);
-            expect(resposta.body).to.have.property('error', 'Usuário remetente ou destinatário não encontrado');
-        });
-
-        it('Usando Mocks: Quando informo valores válidos eu tenho sucesso com 201 CREATED', async () => {
-            const resposta = await request('http://localhost:3000')
-                .post('/transfers')
-                .set('Authorization', `Bearer ${token}`)
-                .send({
-                    from: "julio",
-                    to: "priscila",
-                    value: 100
-                });
+                .send(postTransfer);
 
             expect(resposta.status).to.equal(201);
             
             // Validação com um Fixture
             const respostaEsperada = require('../fixture/respostas/quandoInformoValoresValidosEuTenhoSucessoCom201Created.json')
-            delete resposta.body.date;
-            delete respostaEsperada.date; 
-            expect(resposta.body).to.deep.equal(respostaEsperada);
+            expect(resposta.body)
+                .excluding('date')
+                .to.deep.equal(respostaEsperada);
+        });
+
+        const testesDeErrosDeNegocio = require('../fixture/requisicoes/transferencias/postTransferWithErrors.json');
+        testesDeErrosDeNegocio.forEach(teste => {
+            it(`Testando a regra relacionada a ${teste.nomeDoTeste}`, async () => {
+                const postTransfer = require('../fixture/requisicoes/transferencias/postTransfer.json');
+
+                const resposta = await request(process.env.BASE_URL_REST)
+                    .post('/transfers')
+                    .set('Authorization', `Bearer ${token}`)
+                    .send(teste.postTransfer);
+                
+                expect(resposta.status).to.equal(teste.statusCode);
+                expect(resposta.body).to.have.property('error', teste.mensagemEsperada)
+            });
         });
     });
 });

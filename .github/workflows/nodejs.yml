@@ -23,13 +23,24 @@ jobs:
       run: npm install
 
     - name: Rodar os testes de API via Controller
-      run: npm run test-controller
+      run: npm run test-rest-controller
 
-    - name: Subir a API 
-      run: npm start &
+    - name: Subir a API Rest 
+      run: npm run start-rest &
 
-    - name: Esperar a API estar Funcionando
-      run: sleep 5
+    - name: Subir a API GraphQL 
+      run: npm run start-graphql &
 
-    - name: Rodar os testes de API via HTTP
-      run: npm run test-external
+    - name: Esperar as APIs estarem Funcionando
+      run: sleep 8
+
+    - name: Criar .env
+      run: |
+        echo "BASE_URL_REST=${{ secrets.BASE_URL_REST }}" >> .env
+        echo "BASE_URL_GRAPHQL=${{ secrets.BASE_URL_GRAPHQL }}" >> .env
+
+    - name: Rodar os testes External de API Rest via HTTP
+      run: npm run test-rest-external
+
+    - name: Rodar os testes External de API GraphQL via HTTP
+      run: npm run test-graphql-external
